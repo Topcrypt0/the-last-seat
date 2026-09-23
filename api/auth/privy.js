@@ -1,9 +1,9 @@
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { redis, send, readBody, createSession, ensureUser, cleanName, method } from '../_lib.js';
 
-// Sign in by email or X through Privy. The browser sends the Privy access token
-// (and, when enabled in the Privy dashboard, the identity token that carries the
-// linked email and X account). Both are checked against Privy's public keys.
+// Sign in by email or X through Privy. The browser sends the Privy access token,
+// checked against Privy's public keys. The email and X handle are then read from
+// Privy's API with the app secret, so a player cannot claim someone else's handle.
 let jwks;
 
 export default async function handler(req, res) {
@@ -26,11 +26,31 @@ export default async function handler(req, res) {
     return send(res, 401, { error: 'invalid privy token' });
   }
 
-  // Verified account details, if the identity token is present and valid.
+  // Verified account details: from Privy's API when the app secret is set,
+  // otherwise from the identity token if present and valid.
   let email = null;
   let xHandle = null;
   let verified = false;
-  if (body.identityToken) {
+  const secret = process.env.PRIVY_APP_SECRET;
+  if (secret) {
+    try {
+      const r = await fetch(`https://auth.privy.io/api/v1/users/${encodeURIComponent(sub)}`, {
+        headers: {
+          Authorization: `Basic ${Buffer.from(`${appId}:${secret}`).toString('base64')}`,
+          'privy-app-id': appId,
+        },
+      });
+      if (r.ok) {
+        const u = await r.json();
+        for (const a of u.linked_accounts || []) {
+          if (a.type === 'email' && a.address) email = a.address;
+          if (a.type === 'twitter_oauth' && a.username) xHandle = a.username;
+        }
+        verified = true;
+      }
+    } catch {}
+  }
+  if (!verified && body.identityToken) {
     try {
       const { payload } = await jwtVerify(String(body.identityToken), jwks, opts);
       if (payload.sub === sub) {
