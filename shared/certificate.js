@@ -131,7 +131,7 @@ export function drawCertificate(g, data, art) {
   const verdict = data.won ? 'ADMITTED' : data.falseStart ? 'FLAGGED' : 'DECLINED';
   const col = data.won ? GREEN : OX;
   g.save();
-  g.translate(1054, 116);
+  g.translate(1030, 118);
   g.rotate(-0.16);
   g.globalAlpha = 0.9;
   g.font = `700 34px ${DISPLAY}`;
