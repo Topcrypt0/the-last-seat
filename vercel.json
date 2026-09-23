@@ -2,6 +2,10 @@
   "framework": "vite",
   "buildCommand": "vite build",
   "outputDirectory": "dist",
+  "rewrites": [{ "source": "/s/:id", "destination": "/api/share?id=:id" }],
+  "functions": {
+    "api/card.js": { "includeFiles": "{fonts/**,public/cutouts/**,public/brand/**}", "memory": 1024 }
+  },
   "headers": [
     {
       "source": "/(.*)",

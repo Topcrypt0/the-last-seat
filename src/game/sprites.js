@@ -1,18 +1,11 @@
 import CHARACTERS from '../data/characters.json';
 
 const KEY = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-export const LEGS = 9; // rows at the bottom that swing when walking
 
 export const CHARS = Object.fromEntries(CHARACTERS.map((c) => [c.id, c]));
 export const CHAR_LIST = CHARACTERS;
 
-export const FUNDS = {
-  ARGON: { name: 'The Argon Fund', color: '#49698C', motto: 'Noble, inert, and unmoved by the news.' },
-  BOGLE: { name: 'The Bogle Fund', color: '#4E8A5A', motto: 'Buys the whole haystack.' },
-  SMAUG: { name: 'The Smaug Fund', color: '#9C5248', motto: 'Sleeps on the pile and knows every coin in it.' },
-  MIDAS: { name: 'The Midas Fund', color: '#B9902F', motto: 'Everything it touches, marked to gold.' },
-  VLADD: { name: 'The Vladd Fund', color: '#6E5D8C', motto: 'Buys when there is blood in the streets.' },
-};
+export { FUNDS } from '../../shared/funds.js';
 
 function canvas(w, h) {
   const c = document.createElement('canvas');
@@ -42,14 +35,17 @@ export function sprite(id) {
   if (cache[id]) return cache[id];
   const ch = CHARS[id];
   const mid = Math.floor(ch.w / 2);
+  // the legs are the rows at the bottom with daylight between them
+  let legTop = ch.h;
+  while (legTop > 0 && ch.rows[legTop - 1][mid - 1] === '.' && ch.rows[legTop - 1][mid] === '.') legTop--;
   cache[id] = {
     w: ch.w,
     h: ch.h,
     whole: paint(ch, 0, ch.h),
-    body: paint(ch, 0, ch.h - LEGS),
-    legL: paint(ch, ch.h - LEGS, ch.h, 0, mid),
-    legR: paint(ch, ch.h - LEGS, ch.h, mid, ch.w),
-    mid,
+    body: paint(ch, 0, legTop),
+    legL: paint(ch, legTop, ch.h, 0, mid),
+    legR: paint(ch, legTop, ch.h, mid, ch.w),
+    legTop,
   };
   return cache[id];
 }

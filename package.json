@@ -11,6 +11,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@napi-rs/canvas": "^1.0.9",
     "@privy-io/react-auth": "^3.45.0",
     "ioredis": "^5.11.1",
     "jose": "^6.2.12",

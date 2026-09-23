@@ -1,4 +1,4 @@
-import { sprite, chairSprite, image, LEGS, CHARS, FUNDS } from './sprites.js';
+import { sprite, chairSprite, image, CHARS, FUNDS } from './sprites.js';
 
 export const W = 360;
 export const H = 240;
@@ -327,8 +327,9 @@ export class Stage {
       g.fillStyle = 'rgba(33,27,20,0.18)';
       g.fillRect(x + 2, Math.round(a.y) - 1, sp.w - 4, 2);
       g.drawImage(sp.body, x, y + bob + hop);
-      g.drawImage(sp.legL, x, y + sp.h - LEGS + hop + (f === 0 ? -1 : 0));
-      g.drawImage(sp.legR, x + sp.mid, y + sp.h - LEGS + hop + (f === 1 ? -1 : 0));
+      // each leg canvas keeps its pixels at their own x, so both draw at x
+      g.drawImage(sp.legL, x, y + sp.legTop + hop + (f === 0 ? -1 : 0));
+      g.drawImage(sp.legR, x, y + sp.legTop + hop + (f === 1 ? -1 : 0));
     }
     g.globalAlpha = 1;
     if (a.state === 'out') {

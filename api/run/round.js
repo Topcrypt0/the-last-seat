@@ -1,4 +1,4 @@
-import { redis, send, readBody, sessionUser, method } from '../_lib.js';
+import { redis, send, readBody, sessionUser, method, token } from '../_lib.js';
 import { ROUNDS, MIN_HUMAN_MS, NO_PRESS_MS, roundParams, settleRound } from '../../shared/game.js';
 
 // Clock slack for a client whose timer runs a little fast.
@@ -81,6 +81,22 @@ async function record(userId, run, won) {
   }
   await tx.exec();
   const best = Math.max(prev, run.score);
-  const rank = await r.zrevrank('lb', userId);
-  return { best, rank: rank === null ? null : rank + 1 };
+  const rankIdx = await r.zrevrank('lb', userId);
+  const rank = rankIdx === null ? null : rankIdx + 1;
+  // a frozen record of this run for the share certificate
+  const shareId = token().slice(0, 16);
+  const name = (await r.hget(ukey, 'name')) || 'A shareholder';
+  const share = {
+    name,
+    char: run.char,
+    score: run.score,
+    rounds,
+    fastest: Number.isFinite(fastest) ? fastest : null,
+    rank: run.score >= prev ? rank : null,
+    won,
+    falseStart: run.reactions[run.reactions.length - 1] === null,
+    at: Date.now(),
+  };
+  await r.set(`share:${shareId}`, JSON.stringify(share), 'EX', 60 * 60 * 24 * 365);
+  return { best, rank, shareId, share };
 }

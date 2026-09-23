@@ -424,3 +424,47 @@ footer {
     padding: 22px;
   }
 }
+
+/* sign in gate */
+.gate {
+  border-top: 1px solid var(--rule);
+  margin-top: 8px;
+  padding-top: 12px;
+}
+.gate .label {
+  margin-bottom: 8px;
+}
+.guest {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--rule);
+}
+.warn {
+  margin: 0;
+  font-size: 14px;
+  color: var(--oxblood);
+}
+.result .warn {
+  margin: 4px 0 10px;
+}
+.go {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+.go p {
+  margin: 0;
+}
+.cert {
+  display: block;
+  width: 100%;
+  max-width: 600px;
+  height: auto;
+  border: 1px solid var(--rule);
+  margin: 6px 0 10px;
+}

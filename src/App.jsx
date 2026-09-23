@@ -4,10 +4,12 @@ import { CHAR_LIST, CHARS, FUNDS, sprite } from './game/sprites.js';
 import { RemoteRun, LocalRun, api } from './runs.js';
 import { walletSignIn, hasWallet } from './wallet.js';
 import { CHAR_IDS, ROUNDS } from '../shared/game.js';
+import { makeCertificate } from './certificate.js';
 
 const PRIVY_APP_ID = import.meta.env.VITE_PRIVY_APP_ID;
-const EmailSignIn = PRIVY_APP_ID ? lazy(() => import('./privy.jsx')) : null;
+const PrivySignIn = PRIVY_APP_ID ? lazy(() => import('./privy.jsx')) : null;
 const REPO = 'https://github.com/Topcrypt0/the-last-seat';
+const AUTHOR = '@UltraICO';
 const SITE = typeof location !== 'undefined' ? location.origin : '';
 
 const store = {
@@ -67,6 +69,7 @@ export default function App() {
   const [authMsg, setAuthMsg] = useState('');
   const [muted, setMuted] = useState(() => store.get('tls.muted') === '1');
   const [nameDraft, setNameDraft] = useState('');
+  const [cert, setCert] = useState(null);
 
   // stage
   useEffect(() => {
@@ -143,6 +146,31 @@ export default function App() {
     }
   }, [ui.state]);
 
+  // the share certificate for a finished run
+  useEffect(() => {
+    if (ui.state !== 'won' && ui.state !== 'lost') return setCert(null);
+    const won = ui.state === 'won';
+    const reactions = (ui.log || []).filter((l) => l.survived && l.reaction !== null).map((l) => l.reaction);
+    const data = ui.best?.share || {
+      name: me?.name || 'A guest shareholder',
+      char,
+      score: ui.score,
+      rounds: won ? ROUNDS : ui.round - 1,
+      fastest: reactions.length ? Math.min(...reactions) : null,
+      rank: null,
+      won,
+      falseStart: !!ui.falseStart,
+    };
+    let url;
+    makeCertificate(data)
+      .then(({ blob, url: u }) => {
+        url = u;
+        setCert({ url: u, file: new File([blob], 'the-last-seat.png', { type: 'image/png' }) });
+      })
+      .catch(() => setCert(null));
+    return () => url && URL.revokeObjectURL(url);
+  }, [ui.state, ui.best]);
+
   const onSession = (s, user) => {
     store.set('tls.session', s);
     setSession(s);
@@ -202,10 +230,19 @@ export default function App() {
   const roundsHeld = over ? (ui.state === 'won' ? ROUNDS : ui.round - 1) : 0;
   const shareText = over
     ? ui.state === 'won'
-      ? `I took The Last Seat. Four rounds of musical chairs, one chair left, and it is mine. Score ${ui.score}.\n\nFan game for @themutualfun by Ultra Goat`
-      : `I held ${roundsHeld} of ${ROUNDS} rounds in The Last Seat before the music caught me. Score ${ui.score}.\n\nFan game for @themutualfun by Ultra Goat`
+      ? `I took The Last Seat. Four rounds of musical chairs, one chair left, and it is mine. Score ${ui.score}.\n\nA fan game for @themutualfun by ${AUTHOR}`
+      : `I held ${roundsHeld} of ${ROUNDS} rounds in The Last Seat before the music caught me. Score ${ui.score}.\n\nA fan game for @themutualfun by ${AUTHOR}`
     : '';
-  const shareUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(SITE)}`;
+  // a recorded run gets its own link, whose preview on X is the certificate
+  const shareLink = ui.best?.shareId ? `${SITE}/s/${ui.best.shareId}` : SITE;
+  const shareUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareLink)}`;
+  const canShareFiles = cert && typeof navigator !== 'undefined' && navigator.canShare?.({ files: [cert.file] });
+
+  const shareImage = async () => {
+    try {
+      await navigator.share({ files: [cert.file], text: `${shareText}\n${shareLink}` });
+    } catch {}
+  };
 
   return (
     <div className="page">
@@ -215,7 +252,7 @@ export default function App() {
           <p className="kicker">A game of musical chairs for shareholders</p>
           <h1>The Last Seat</h1>
           <p className="byline">
-            Made by <strong>Ultra Goat</strong> for The Mutual Fun
+            Made by <a href="https://x.com/UltraICO" target="_blank" rel="noreferrer"><strong>Ultra Goat</strong></a> for The Mutual Fun
           </p>
         </div>
         <button className="mute" onClick={() => setMuted((m) => !m)} aria-pressed={muted}>
@@ -287,12 +324,24 @@ export default function App() {
                   </div>
                 )}
               </dl>
-              {!ui.scored && <p className="note">Practice run. Sign in below and the ledger keeps your score.</p>}
+              {!ui.scored && (
+                <p className="warn">Unrecorded run: this score is not on the leaderboard. Sign in from the lobby to be scored.</p>
+              )}
+              {cert && <img className="cert" src={cert.url} alt="Your certificate of seating" />}
               <div className="row">
                 <button className="primary" onClick={start}>Play again</button>
                 <a className="button" href={shareUrl} target="_blank" rel="noreferrer">Post it on X</a>
+                {cert && (
+                  <a className="button" href={cert.url} download="the-last-seat.png">Save image</a>
+                )}
+                {canShareFiles && <button onClick={shareImage}>Share image</button>}
                 <button className="link" onClick={quit}>Lobby</button>
               </div>
+              <p className="note">
+                {ui.best?.shareId
+                  ? 'The X post links to your certificate, so the picture shows up in the post.'
+                  : 'Save the image and attach it to your post to show the score.'}
+              </p>
             </div>
           )}
 
@@ -305,9 +354,12 @@ export default function App() {
                   <p className="motto">{fund.motto}</p>
                   <p className="mono small">Usual chair: {CHARS[char].chair}</p>
                 </div>
-                <button className="primary big" onClick={start}>
-                  {session ? 'Take a seat' : 'Practice run'}
-                </button>
+                {session && (
+                  <div className="go">
+                    <button className="primary big" onClick={start}>Take a seat</button>
+                    <p className="mono small">Scored as {me?.name || 'you'}</p>
+                  </div>
+                )}
               </div>
               <div className="picker" role="listbox" aria-label="Choose a shareholder">
                 {CHAR_LIST.map((c) => (
@@ -324,6 +376,33 @@ export default function App() {
                   </button>
                 ))}
               </div>
+              {!session && (
+                <div className="gate">
+                  <p className="label">Sign in to be scored</p>
+                  <div className="row wrap">
+                    <button className="primary" onClick={signInWallet}>Wallet on Robinhood Chain</button>
+                    {PrivySignIn ? (
+                      <Suspense fallback={<><button disabled>Email</button><button disabled>X account</button></>}>
+                        <PrivySignIn appId={PRIVY_APP_ID} onSession={onSession} onMessage={setAuthMsg} />
+                      </Suspense>
+                    ) : (
+                      <>
+                        <button disabled title="Opens soon">Email</button>
+                        <button disabled title="Opens soon">X account</button>
+                      </>
+                    )}
+                  </div>
+                  <p className="note">
+                    Wallet sign in is one free signed message: no transaction, no gas, no approvals.
+                    {!hasWallet() && ' No wallet in this browser: open the page in your wallet app, or use email or X.'}
+                  </p>
+                  {authMsg && <p className="note">{authMsg}</p>}
+                  <div className="guest">
+                    <button onClick={start}>Play without signing in</button>
+                    <p className="warn">Your result will not be recorded on the leaderboard.</p>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </section>
@@ -350,23 +429,9 @@ export default function App() {
                 <button className="link" onClick={signOut}>Sign out</button>
               </>
             ) : (
-              <>
-                <p>Sign in and every run is scored on the leaderboard. Practice runs need nothing.</p>
-                <div className="row wrap">
-                  <button onClick={signInWallet}>Wallet on Robinhood Chain</button>
-                  {EmailSignIn && (
-                    <Suspense fallback={<button disabled>Email</button>}>
-                      <EmailSignIn appId={PRIVY_APP_ID} onSession={onSession} onMessage={setAuthMsg} />
-                    </Suspense>
-                  )}
-                </div>
-                {!hasWallet() && (
-                  <p className="note">No wallet in this browser. Open the page inside your wallet app{EmailSignIn ? ', or use email' : ''}.</p>
-                )}
-                <p className="note">Signing is free: a message, not a transaction. No gas, no approvals.</p>
-              </>
+              <p>Not signed in. Sign in from the lobby with a wallet, email or X and every run is scored.</p>
             )}
-            {authMsg && <p className="note">{authMsg}</p>}
+            {session && authMsg && <p className="note">{authMsg}</p>}
           </section>
 
           <section className="card board">
@@ -410,7 +475,7 @@ export default function App() {
 
       <footer>
         <p>
-          The Last Seat is a fan game by Ultra Goat, made with the UGC kit from{' '}
+          The Last Seat is a fan game by Ultra Goat (<a href="https://x.com/UltraICO" target="_blank" rel="noreferrer">@UltraICO</a>), made with the UGC kit from{' '}
           <a href="https://themutual.fun" target="_blank" rel="noreferrer">The Mutual Fun</a> (
           <a href="https://x.com/themutualfun" target="_blank" rel="noreferrer">@themutualfun</a>). It is not made, run or endorsed by TMF.
         </p>

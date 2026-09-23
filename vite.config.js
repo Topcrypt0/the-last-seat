@@ -7,6 +7,8 @@ function devApi() {
     name: 'dev-api',
     configureServer(server) {
       server.middlewares.use(async (req, res, next) => {
+        const share = req.url.match(/^\/s\/([A-Za-z0-9_-]+)/);
+        if (share) req.url = `/api/share?id=${share[1]}`;
         if (!req.url.startsWith('/api/')) return next();
         const path = req.url.split('?')[0].replace(/\/$/, '');
         try {
@@ -23,6 +25,6 @@ function devApi() {
 }
 
 export default defineConfig(({ mode }) => {
-  Object.assign(process.env, loadEnv(mode, import.meta.dirname, ''));
+  Object.assign(process.env, loadEnv(mode, import.meta.dirname, ''), { APP_ROOT: import.meta.dirname });
   return { plugins: [react(), devApi()] };
 });

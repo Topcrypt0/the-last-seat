@@ -54,8 +54,10 @@ export async function sessionUser(req) {
 
 // Display names are shown to everyone: keep them short and plain.
 export function cleanName(s) {
-  const n = String(s || '').replace(/^@/, '').replace(/[^A-Za-z0-9_. -]/g, '').trim().slice(0, 20);
-  return n.length >= 2 ? n : null;
+  const raw = String(s || '').trim();
+  const at = raw.startsWith('@') ? '@' : '';
+  const n = raw.replace(/[^A-Za-z0-9_. -]/g, '').trim().slice(0, 20);
+  return n.length >= 2 ? at + n : null;
 }
 
 export async function ensureUser(userId, defaults) {
