@@ -1,0 +1,25 @@
+{
+  "name": "the-last-seat",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Musical chairs for The Mutual Fun shareholders. Fan made by Ultra Goat.",
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@privy-io/react-auth": "^3.45.0",
+    "ioredis": "^5.11.1",
+    "jose": "^6.2.12",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "viem": "^2.56.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.1.1",
+    "vite": "^8.3.0"
+  }
+}
