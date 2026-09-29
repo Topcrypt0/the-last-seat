@@ -38,7 +38,7 @@ export class Game {
 
   _sit(ts) {
     if (this.reaction !== undefined) return;
-    this.reaction = Math.max(0, ts - this.stopPerf);
+    this.reaction = Math.max(0, Math.round(ts - this.stopPerf));
     this.stage.claim('you');
     this.music.thump();
     this._checkFull();

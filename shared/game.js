@@ -56,7 +56,7 @@ export function roundParams(seed, round, bots) {
 // Returns who is out and the points earned by the player.
 export function settleRound(params, reaction) {
   const falseStart = reaction === null;
-  const mine = falseStart ? Infinity : Math.min(NO_PRESS_MS, Math.max(MIN_HUMAN_MS, reaction));
+  const mine = falseStart ? Infinity : Math.min(NO_PRESS_MS, Math.max(MIN_HUMAN_MS, Math.round(reaction)));
   const times = Object.entries(params.botReactions).map(([id, ms]) => ({ id, ms }));
   times.push({ id: 'you', ms: mine });
   // slowest is out; ties go against the player
